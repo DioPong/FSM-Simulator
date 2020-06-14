@@ -8,22 +8,26 @@
 
 ----
 
-| Commands | Remark| Status ✔ |
-| :-: | :-: | :-: |
-| login |      |      |
-| logout |      |      |
-| Initialization | Similar to reboot |  |
-| create | Create file |  |
-| open |      |      |
-| read/cat | read file |  |
-| write | write doc to file |  |
-| close | close file |  |
-| rm/delete | remove file or doc |  |
-| mkdir | create new doc |  |
-| cd | switch current route |  |
-| dir | list current file route |  |
-| stat | show system info |  |
-| Administrator | | |
+| Commands | Parameter? | Remark| Status ✔ |
+| :-: | :-: | :-: | :-: |
+| Administrator |  | Add new user | 😑 |
+| register | name/password | with op (e.g. admin) | 😑 |
+| login | name/password |      | 😑 |
+| logout | - |      | 😑 |
+| ~~Initialization~~ |  | ~~Similar to reboot~~ |  |
+| create | file name | Create file | 😭 |
+| open |  | QAQ | 😭 |
+| read/cat |  | read file | ✔ |
+| write |  | write doc to file |  |
+| close |  | QAQ | 😭 |
+| rm/delete |  | remove file or doc | ✔ |
+| mkdir |  | create new doc | ✔ |
+| cd |  | switch current route | ✔ |
+| dir |  | list current file route | ✔ |
+| stat |  | show file info (size, inode index) | ✔ |
+| upload | | upload file from local disk | ✔ |
+| download | | download file from simulator | ✔ |
+
 
 #### File Tree should be like this 🎄
 
