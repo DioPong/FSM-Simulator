@@ -1,6 +1,6 @@
 # FSM-Simulator 
 
-> #### A File-System-Manager based on Python3, witch is simulate with UFS.
+> #### A File-System-Manager based on Python3.7+, witch is simulate with UFS.
 
 ----
 

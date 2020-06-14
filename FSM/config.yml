@@ -1,0 +1,43 @@
+# 版本号
+version: V1
+
+# 系统名称
+system_name: FSM-Simulator
+
+# FSM系统大小 单位MB
+system_size: 1024
+
+# 系统位数
+bit: 64
+
+# 数据块大小 单位KB
+data_block_size: 8
+
+# 数据块索引大小 单位KB
+data_block_index_size: 4096
+
+# 数据块数量
+data_block_num: 120000
+
+# inode大小 单位KB
+inode_size: 128
+
+# inode密度
+inode_density: 2048
+
+
+
+  # 文件系统大小：1GB
+  # file_system_size=1024 * 1024 * 1024,
+  # 系统位数：64
+  # bit=64,
+  # inode大小：128KB
+  # inode_size=128,
+  # inode密度：2048
+  # inode_density=2048,
+  # 数据块大小：8KB
+  # data_block_size=8 * 1024,
+  # 数据块索引大小：4KB
+  # block_index_size=4,
+  # 数据块数量：120000
+  # data_block_num=120000,
