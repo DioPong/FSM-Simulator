@@ -15,7 +15,7 @@ class SERVER:
 
     def server(self):
 
-        Methods.cod(text=f"[Connect] Listening {self.address[0]}, port: {self.address[1]}", color='blue')
+        Methods.cod(text=f"Listening {self.address[0]}, port: {self.address[1]}", color='blue', flag='info')
 
         while True:
 

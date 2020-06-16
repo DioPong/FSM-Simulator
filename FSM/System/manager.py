@@ -23,7 +23,10 @@ class FileSystemManager(object):
 
         self.user_index = 0
 
+        self.permission = 0
+
         self.commands = {
+            'permission': self.permission_,
             'register': self.register,
             'stat': self.stat,
             'cd': self.cd,
@@ -35,7 +38,8 @@ class FileSystemManager(object):
             'more': self.more,
             'cp': self.cp,
             'import': self.file_import,
-            'export': self.file_export
+            'export': self.file_export,
+            'login': self.login,
         }
 
         self.super_block = SuperBlock()
@@ -64,13 +68,13 @@ class FileSystemManager(object):
 
         msg_list = msg.split()
 
+        print(msg, msg_list)
+
         self.user_index, self.command = msg_list[:2]  # str
 
         self.user_index = int(self.user_index)
 
         self.parameters = msg_list[2:]  # str_list
-
-        # choose
 
     def dispatcher(self):
 
@@ -87,9 +91,16 @@ class FileSystemManager(object):
 
     def register(self):
 
+        self.permission = 0
+
         self.result = self.user_manager.add_user()
 
     def stat(self):
+
+        if self.permission == 0:
+            self.result = Methods.cod(text=f"Permission deny", color='red', flag='error', get_value=True)
+
+            return
 
         location_index = self.user_manager.get_location_index(self.user_index)
         dir_data = self.file_manager.load(location_index, 'dir')
@@ -124,6 +135,11 @@ class FileSystemManager(object):
 
     def cd(self):
 
+        if self.permission == 0:
+            self.result = Methods.cod(text=f"Permission deny", color='red', flag='error', get_value=True)
+
+            return
+
         location_index = self.user_manager.get_location_index(self.user_index)
 
         dir_data = self.file_manager.load(location_index, 'dir')
@@ -152,6 +168,11 @@ class FileSystemManager(object):
 
     def ls(self):
 
+        if self.permission == 0:
+            self.result = Methods.cod(text=f"Permission deny", color='red', flag='error', get_value=True)
+
+            return
+
         location_index = self.user_manager.get_location_index(self.user_index)
         dir_data = self.file_manager.load(location_index, 'dir')
 
@@ -162,15 +183,20 @@ class FileSystemManager(object):
             self.result = '\nNone'
             return
 
-        result = '\n'
+        result = '\n[Output]'
 
-        for key in dir_data.keys():
-            result += key
-            result += '\n'
+        for key in dir_data:
 
-        self.result = result
+            result += f" {key} "
+
+        self.result = Methods.cod(text=result, get_value=True, color='green')
 
     def mkdir(self):
+
+        if self.permission == 0:
+            self.result = Methods.cod(text=f"Permission deny", color='red', flag='error', get_value=True)
+
+            return
 
         location_index = self.user_manager.get_location_index(self.user_index)
 
@@ -202,6 +228,11 @@ class FileSystemManager(object):
 
     def rm(self):
 
+        if self.permission == 0:
+            self.result = Methods.cod(text=f"Permission deny", color='red', flag='error', get_value=True)
+
+            return
+
         location_index = self.user_manager.get_location_index(self.user_index)
 
         Methods.cod(text=f"Current dir inode index: {location_index}", flag='info', color='yellow')
@@ -219,6 +250,7 @@ class FileSystemManager(object):
             self.result = 'No such file or directory!'
 
             return
+
         except IndexError:
             self.result = 'Command error!'
             return
@@ -237,6 +269,11 @@ class FileSystemManager(object):
         self.result = 'rm succeed!'
 
     def find(self):
+
+        if self.permission == 0:
+            self.result = Methods.cod(text=f"Permission deny", color='red', flag='error', get_value=True)
+
+            return
 
         location_index = self.user_manager.get_location_index(self.user_index)
 
@@ -271,6 +308,11 @@ class FileSystemManager(object):
 
     def more(self):
 
+        if self.permission == 0:
+            self.result = Methods.cod(text=f"Permission deny", color='red', flag='error', get_value=True)
+
+            return
+
         location_index = self.user_manager.get_location_index(self.user_index)
 
         dir_data = self.file_manager.load(location_index, 'dir')
@@ -302,6 +344,11 @@ class FileSystemManager(object):
 
     def cp(self):
 
+        if self.permission == 0:
+            self.result = Methods.cod(text=f"Permission deny", color='red', flag='error', get_value=True)
+
+            return
+
         location_index = self.user_manager.get_location_index(self.user_index)
 
         dir_data = self.file_manager.load(location_index, 'dir')
@@ -331,6 +378,11 @@ class FileSystemManager(object):
         self.result = 'cp succeed!'
 
     def file_import(self):
+
+        if self.permission == 0:
+            self.result = Methods.cod(text=f"Permission deny", color='red', flag='error', get_value=True)
+
+            return
 
         try:
 
@@ -364,6 +416,11 @@ class FileSystemManager(object):
         self.result = 'file import succeed!'
 
     def file_export(self):
+
+        if self.permission == 0:
+            self.result = Methods.cod(text=f"Permission deny", color='red', flag='error', get_value=True)
+
+            return
 
         try:
 
@@ -399,6 +456,54 @@ class FileSystemManager(object):
             f.write(data)
 
         self.result = 'file export succeed!'
+
+    def login(self):
+
+        from uuid import uuid5, NAMESPACE_X500
+
+        try:
+            name = str(self.parameters[0])
+
+            password = str(self.parameters[1])
+
+            usr_name = uuid5(namespace=NAMESPACE_X500, name=name)
+
+            usr_password = uuid5(namespace=NAMESPACE_X500, name=password)
+
+            f = open(f'./System/userdata/{usr_name}', 'r')
+
+            r_password = f.read()
+
+            if str(usr_password) == str(r_password):
+
+                Methods.cod('Login succeed', color='red', flag='info')
+
+                self.permission = 2
+
+                self.result = Methods.cod(text=f"Login as {name}", color='green', flag='info', get_value=True)
+
+                Methods.cod(text=f"uname: {name}, uid: {usr_name}", flag='info', color='blue')
+
+            else:
+
+                self.result = Methods.cod(text=f"Username or password incorrect",
+                                          flag='error', color='red', get_value=True)
+
+            f.close()
+
+        except IndexError:
+
+            self.result = Methods.cod(text=f"Failed to login", color='red', flag='error', get_value=True)
+
+            Methods.cod(text=f"Failed to login", color='red', flag='error')
+
+    def logout(self):
+
+        pass
+
+    def permission_(self):
+
+        self.result = self.permission
 
 
 class UserManager(object):
@@ -721,10 +826,21 @@ class Methods:
         }
 
         if get_value is False:
-            print(f"\033[{display[dp]};{background_color[bg]};{font_color[color]}m {flag_type[flag]}{text} \033[0m")
+            print(f"\033[{display[dp]};{background_color[bg]};{font_color[color]}m{flag_type[flag]} {text} \033[0m")
         else:
-            text = f"\033[{display[dp]};{background_color[bg]};{font_color[color]}m {flag_type[flag]}{text} \033[0m"
+            text = f"\033[{display[dp]};{background_color[bg]};{font_color[color]}m{flag_type[flag]} {text} \033[0m"
             return text
+
+    @staticmethod
+    def permission(func, op):
+
+        print(func)
+
+        if op == 1 or op == 2:
+            return True
+
+        elif op == 0:
+            return False
 
     @staticmethod
     def index_to_two_dimensional(width, height, index):
@@ -775,5 +891,5 @@ class Methods:
             Methods.cod(text=f"[ERROR] An error was occur when data transforming", color='red')
             return
 
-        Methods.cod(text=f"[INFO] Succeed to transform data")
+        Methods.cod(text=f"Succeed to transform data", flag='info')
         return data

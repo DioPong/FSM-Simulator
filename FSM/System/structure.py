@@ -182,6 +182,6 @@ class Method:
             'white': 47,
         }
         if end_str is True:
-            print(f"\033[{display[dp]};{background_color[bg]};{font_color[color]}m {text} \033[0m")
+            print(f"\033[{display[dp]};{background_color[bg]};{font_color[color]}m{text} \033[0m")
         else:
-            print(f"\033[{display[dp]};{background_color[bg]};{font_color[color]}m {text} \033[0m", end='')
+            print(f"\033[{display[dp]};{background_color[bg]};{font_color[color]}m{text} \033[0m", end='')

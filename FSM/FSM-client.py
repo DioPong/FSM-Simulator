@@ -11,10 +11,12 @@ class UserUI(object):
         self.location = '/'
         self.loc_flag = 0
 
+        self.login_info()
+
         try:
             with Client(self.address, authkey=b'password') as conn:
-                # register format
-                conn.send(f"0 register 0")
+
+                conn.send(f"0 register guest")  # register format
 
                 self.user_handle = conn.recv()
 
@@ -22,8 +24,11 @@ class UserUI(object):
 
                 Method.cod(text=f"[Info] File System Handle {self.user_handle}", color='purple')
 
+                Method.cod(text=f"[Hint] Please log in first, or you don't have any permissions!", color='red')
+
         except ConnectionRefusedError:
-            Method.cod(text=f"Cannot connect to server, please try again", color='red')
+            Method.cod(text=f"Cannot connect to server, please try again", color='red', )
+            exit(1)
 
     @staticmethod
     def login_info():
@@ -48,6 +53,7 @@ class UserUI(object):
 
         if operation == 'help':
             Method.cod(text='FSM helper\n'
+                            '  -permission\n'
                             '  -stat         [name]\n'
                             '  -cd           [name]\n'
                             '  -mkdir        [name]\n'
@@ -70,7 +76,7 @@ class UserUI(object):
             self.login_info()
 
         elif operation in ['stat', 'cd', 'ls', 'mkdir', 'rmdir', 'rm', 'search', 'cat', 'cp', 'upload', 'download',
-                           'register']:
+                           'login', 'logout', 'permission']:
 
             if operation == 'cd':
 
@@ -112,8 +118,6 @@ class UserUI(object):
 
 def main():
     ui = UserUI()
-
-    ui.login_info()
 
     while True:
         ui.terminal()
