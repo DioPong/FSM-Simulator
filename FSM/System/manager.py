@@ -1,61 +1,58 @@
 from System.structure import SuperBlock, Inode, User
-import numpy as np
+
 import sys
 
-"""
->>> File System Manager
-"""
+try:
+    from numpy import zeros, where
+
+except ImportError:
+    print('[ERROR] Cannot import numpy, '
+          'please install numpy.')
+    exit(-1)
 
 
 class FileSystemManager(object):
+
     def __init__(self):
 
         self.result = ''
 
-        self.para = []
+        self.command = []
 
-        self.usr_index = []
+        self.parameters = []
+
+        self.user_index = 0
 
         self.commands = {
-            'register': self.register(),
-            'stat': self.stat(),
-            'cd': self.cd(),
-            'ls': self.ls(),
-            'mkdir': self.mkdir(),
-            'rm': self.rm(),
-            'read': self.read(),
-            'cat': self.read(),
-            'search': self.search(),
-            'cp': self.cp(),
-            'upload': self.upload(),
-            'download': self.download(),
+            'register': self.register,
+            'stat': self.stat,
+            'cd': self.cd,
+            'ls': self.ls,
+            'mkdir': self.mkdir,
+            'rmdir': self.rm,
+            'rm': self.rm,
+            'find': self.find,
+            'more': self.more,
+            'cp': self.cp,
+            'import': self.file_import,
+            'export': self.file_export
         }
 
         self.super_block = SuperBlock()
 
-        self.file_manager = FileManager(super_block=self.super_block)
+        self.file_manager = FileManager(self.super_block)
 
-        self.usr_manager = UserManager()
+        self.user_manager = UserManager()
 
-        ColorInfo(content=f"File System Initialized", fg='green')
+        Methods.cod(text='File System Initialized', flag='info', color='indigo')
 
-    def message_processor(self, msg):
+    def input(self, msg):
 
-        msg_list = msg.split()
-
-        self.usr_index, self.commands = msg_list[:2]
-
-        self.usr_index = int(self.usr_index)
-
-        self.para = msg_list[2:]
-
-    def message_input(self, msg):
-
-        self.message_processor(msg=msg)
+        self.msg_process(msg)
 
         self.dispatcher()
 
-    def message_output(self):
+    def output(self):
 
         result = self.result
 
@@ -63,625 +60,639 @@ class FileSystemManager(object):
 
         return result
 
+    def msg_process(self, msg):
+
+        msg_list = msg.split()
+
+        self.user_index, self.command = msg_list[:2]  # str
+
+        self.user_index = int(self.user_index)
+
+        self.parameters = msg_list[2:]  # str_list
+
+        # choose
+
     def dispatcher(self):
-        instruct_ = self.commands.get(self.commands)
 
-        instruct_()
+        instruct = self.commands.get(self.command)
 
-    # >>>>>>>>>>>>>>>>>>>> Commands <<<<<<<<<<<<<<<<<<<<
+        try:
+            instruct()
+
+        except SyntaxError as e:
+            Methods.cod(text=f"{e}", flag='error', color='red')
+
+        except Exception as e:
+            Methods.cod(text=e, flag='error', color='red')
 
     def register(self):
 
-        self.result = self.usr_manager.add_usr()
+        self.result = self.user_manager.add_user()
 
     def stat(self):
 
-        index_loc = self.usr_manager.get_loc_index(index=self.usr_index)
-
-        data_dir = self.file_manager.load(index=index_loc, data_type='dir')
+        location_index = self.user_manager.get_location_index(self.user_index)
+        dir_data = self.file_manager.load(location_index, 'dir')
 
         try:
-            name = self.para[0]
-            index = data_dir[name]
+            name = self.parameters[0]
+            index = dir_data[name]
 
-        except KeyError as e:
-            ColorInfo(content=e)
+        except KeyError:
+
+            self.result = 'No such file or directory!'
+
             return
 
-        except IndexError as e:
-            ColorInfo(content=e)
+        except IndexError:
+            self.result = 'Command error!'
             return
 
-        info = self.file_manager.information(index=index)
+        information = self.file_manager.get_information(index)
 
-        info['file name'] = name
+        information['file name'] = name
 
         result = '\n'
 
-        for key, value in info.items():
-            result += key
+        for k, v in information.items():
+            result += k
             result += ':'
-            result += str(value)
+            result += str(v)
             result += ' '
 
         self.result = result
 
     def cd(self):
 
-        loc_index = self.usr_manager.get_loc_index(index=self.usr_index)
+        location_index = self.user_manager.get_location_index(self.user_index)
 
-        data_dir = self.file_manager.load(index=loc_index, data_type='dir')
+        dir_data = self.file_manager.load(location_index, 'dir')
 
         try:
-            name = self.para[0]
-            index = data_dir[name]
+            name = self.parameters[0]
+            index = dir_data[name]
 
         except KeyError:
-            # ColorInfo(content=e, fg='yellow')
-            self.result = 'No such file or dictionary'
+
+            self.result = 'No such file or directory!'
+
             return
 
         except IndexError:
-            # ColorInfo(content=e, fg='yellow')
-            self.result = 'Command Error'
+            self.result = 'Command error!'
             return
 
-        next_loc_index = index
-        self.usr_manager.set_loc_index(usr_index=self.usr_index, loc_index=next_loc_index)
+        next_location_index = index
+        self.user_manager.set_location_index(
+            self.user_index, next_location_index)
 
-        next_data_dir = self.file_manager.load(index=next_loc_index, data_type='dir')
+        next_dir_data = self.file_manager.load(next_location_index, 'dir')
 
-        self.result = next_data_dir['.']
+        self.result = next_dir_data['.']
 
     def ls(self):
 
-        loc_index = self.usr_manager.get_loc_index(index=self.usr_index)
+        location_index = self.user_manager.get_location_index(self.user_index)
+        dir_data = self.file_manager.load(location_index, 'dir')
 
-        data_dir = self.file_manager.load(index=loc_index, data_type='dir')
+        dir_data.pop('.')
+        dir_data.pop('..')
 
-        data_dir.pop('.')
-        data_dir.pop('..')
-
-        if data_dir is None:
-            self.result = 'None'
+        if not dir_data:
+            self.result = '\nNone'
             return
 
         result = '\n'
 
-        for key in data_dir:
-            result = result + key + '\n'
+        for key in dir_data.keys():
+            result += key
+            result += '\n'
 
         self.result = result
 
     def mkdir(self):
 
-        loc_index = self.usr_manager.get_loc_index(index=self.usr_index)
+        location_index = self.user_manager.get_location_index(self.user_index)
 
         try:
-            name = self.para[0]
+
+            name = self.parameters[0]
         except IndexError:
-            self.result = 'Command Error'
+            self.result = 'Command error!'
             return
 
-        data_ = {'.': name, '..': loc_index, }
+        data = {
+            '.': name,
+            '..': location_index
+        }
 
-        index = self.file_manager.save(data=data_)
+        index = self.file_manager.save(data)
 
-        ColorInfo(content=f"New dir {name} created. Inode index: {index}", fg='yellow')
+        Methods.cod(text=f"New dir file inode index: {index}, name: {name}", flag='info', color='yellow')
 
-        ColorInfo(content=f"Current dir inode index: {loc_index}")
+        Methods.cod(text=f"Current dir inode index: {location_index}", flag='info', color='yellow')
 
-        index = self.file_manager.update_dir(index=loc_index, new_dict={name: index})
+        index = self.file_manager.update_dir_file(location_index, {name: index})
 
-        ColorInfo(content=f"Current dir is save in inode index: {index}")
+        Methods.cod(text=f"Current dir saved in inode index: {index}")
 
-        self.usr_manager.set_loc_index(usr_index=self.usr_index, loc_index=index)
+        self.user_manager.set_location_index(self.user_index, index)
 
-        self.result = "Folder mkdir succeed"
+        self.result = 'mkdir succeed!'
 
     def rm(self):
 
-        loc_index = self.usr_manager.get_loc_index(index=self.usr_index)
+        location_index = self.user_manager.get_location_index(self.user_index)
 
-        ColorInfo(content=f"Current dir inode index: {loc_index}")
+        Methods.cod(text=f"Current dir inode index: {location_index}", flag='info', color='yellow')
 
-        data_dir = self.file_manager.load(index=loc_index, data_type='dir')
+        dir_data = self.file_manager.load(location_index, 'dir')
 
-        ColorInfo(content=f"Current dir: {data_dir}", fg='yellow')
+        Methods.cod(text=f"Current dir: {dir_data}", flag='info', color='yellow')
 
         try:
-            name = self.para[0]
-            index = data_dir[name]
+            name = self.parameters[0]
+            index = dir_data[name]
 
         except KeyError:
-            self.result = 'No such file or dictionary'
-            return
 
+            self.result = 'No such file or directory!'
+
+            return
         except IndexError:
-            self.result = 'Command Error'
+            self.result = 'Command error!'
             return
 
-        self.file_manager.delete(index=index)
+        self.file_manager.delete(index)
 
-        ColorInfo(content=f"Current dir updated: {data_dir}")
+        Methods.cod(text=f"Current dir {dir_data} update", flag='info')
 
-        index = self.file_manager.update_dir(index=loc_index, new_dict={name: index}, method='del')
+        index = self.file_manager.update_dir_file(
+            location_index, {name: index}, 'del')
 
-        ColorInfo(content=f"Current dir is saved in inode index: {index}")
+        Methods.cod(text=f"Current dir save in inode index: {index}")
 
-        self.usr_manager.set_loc_index(usr_index=self.usr_index, loc_index=index)
+        self.user_manager.set_location_index(self.user_index, index)
 
-        self.result = 'Command rm execute succeed'
+        self.result = 'rm succeed!'
 
-    def search(self):
+    def find(self):
 
-        loc_index = self.usr_manager.get_loc_index(index=self.usr_index)
+        location_index = self.user_manager.get_location_index(self.user_index)
 
-        name_search_list = self.file_manager.sub_file_dir(index=loc_index, dirs='')
+        name_list = self.file_manager.sub_file(location_index, '')
 
         try:
-            name = self.para[0]
+            name = self.parameters[0]
 
         except IndexError:
-            self.result = 'Command Error'
+
+            self.result = 'Command error!'
+
             return
 
-        to_find = list(filter(lambda item: name in item.xplit('/').pop(), name_search_list))
+        find_list = list(
+            filter(lambda x: name in x.split('/').pop(), name_list))
 
         result = '\n'
 
-        if to_find is not None:
-            for i in to_find:
-                result = result + i + '\n'
+        if find_list:
 
+            for i in find_list:
+
+                result += i
+
+                result += '\n'
         else:
-            result = 'File or folder is not fount'
+
+            result = 'Not found.'
 
         self.result = result
 
-    def read(self):
+    def more(self):
 
-        loc_index = self.usr_manager.get_loc_index(index=self.usr_index)
+        location_index = self.user_manager.get_location_index(self.user_index)
 
-        data_dir = self.file_manager.load(index=loc_index, data_type='dir')
+        dir_data = self.file_manager.load(location_index, 'dir')
 
         try:
-            name = self.para[0]
-            index = data_dir[name]
+
+            name = self.parameters[0]
+
+            index = dir_data[name]
 
         except KeyError:
-            self.result = 'No such file or dictionary'
-            return
 
+            self.result = 'No such file or directory!'
+
+            return
         except IndexError:
-            self.result = 'Command Error'
+
+            self.result = 'Command error!'
+
             return
 
-        data = self.file_manager.load(index=index, data_type='text')
+        data = self.file_manager.load(index, 'text')
 
-        data = f"\n{data}"
+        data = '\n'+data
 
         self.result = data
 
+        pass
+
     def cp(self):
 
-        loc_index = self.usr_manager.get_loc_index(index=self.usr_index)
+        location_index = self.user_manager.get_location_index(self.user_index)
 
-        data_dir = self.file_manager.load(index=loc_index, data_type='dir')
+        dir_data = self.file_manager.load(location_index, 'dir')
 
         try:
-            source_file = self.para[0]
-            target_file = self.para[1]
-
-            source_file_index = data_dir[source_file]
+            name1 = self.parameters[0]
+            name2 = self.parameters[1]
+            index1 = dir_data[name1]
 
         except KeyError:
-            self.result = 'No such file or dictionary'
+
+            self.result = 'No such file or directory!'
+
             return
 
         except IndexError:
-            self.result = 'Command Error'
+            self.result = 'Command error!'
+
             return
 
-        data = self.file_manager.load(index=source_file_index, data_type='binary')
+        data = self.file_manager.load(index1, 'binary')
 
-        index = self.file_manager.save(data=data)
+        index = self.file_manager.save(data)
 
-        self.file_manager.update_dir(index=loc_index, new_dict={target_file: index})
+        self.file_manager.update_dir_file(location_index, {name2: index})
 
-        self.result = 'Command cp execute succeed'
+        self.result = 'cp succeed!'
 
-    def upload(self):
+    def file_import(self):
 
         try:
-            source_file = self.para[0]
-            target_file = self.para[1]
 
-            source_file_path = f"{sys.path[0]}/{source_file}"
+            name1 = self.parameters[0]
 
-            f = open(source_file_path, 'rb')
+            name2 = self.parameters[1]
 
+            name1 = sys.path[0]+'/'+name1
+
+            f = open(name1, 'rb')
+
+        except IndexError:
+
+            self.result = 'Command error!'
+
+            return
         except FileNotFoundError:
-            self.result = f"File not found, Please check again"
+
+            self.result = 'FileNotFoundError: not found!'
+
             return
 
-        except IndexError:
-            self.result = 'Command Error'
-            return
+        data = f.read()
 
-        file_content = f.read()
+        index = self.file_manager.save(data)
 
-        f.close()
+        location_index = self.user_manager.get_location_index(self.user_index)
 
-        index = self.file_manager.save(data=file_content)
+        self.file_manager.update_dir_file(location_index, {name2: index})
 
-        loc_index = self.usr_manager.get_loc_index(index=self.usr_index)
+        self.result = 'file import succeed!'
 
-        self.file_manager.update_dir(index=loc_index, new_dict={target_file: index})
-
-        self.result = 'Upload File Succeed'
-
-    def download(self):
+    def file_export(self):
 
         try:
-            file_name = self.para[0]
-            file_path = self.para[1]
+
+            name = self.parameters[0]
+
+            path = self.parameters[1]
 
         except IndexError:
-            self.result = 'Command Error'
+
+            self.result = 'Command error!'
+
             return
 
-        loc_index = self.usr_manager.get_loc_index(index=self.usr_index)
+        location_index = self.user_manager.get_location_index(self.user_index)
 
-        data_dir = self.file_manager.load(index=loc_index, data_type='dir')
+        dir_data = self.file_manager.load(location_index, 'dir')
 
         try:
-            index = data_dir[file_name]
+            index = dir_data[name]
 
         except KeyError:
-            self.result = 'No such file or dictionary'
+
+            self.result = 'No such file or directory!'
+
             return
 
-        data = self.file_manager.load(index=index, data_type='binary')
+        data = self.file_manager.load(index, 'binary')
 
-        path = f"{sys.path[0]}/{file_path}"
+        path = sys.path[0]+'/'+path
 
         with open(path, 'wb') as f:
-            f.write(data)
-        f.close()
 
-        self.result = 'Download file succeed'
+            f.write(data)
+
+        self.result = 'file export succeed!'
 
 
 class UserManager(object):
-    def __init__(self):
 
+    pass
+
+    def __init__(self):
         self.users = []
 
-    def add_usr(self):
+    def add_user(self):
+
         user = User()
 
         self.users.append(user)
 
         return len(self.users) - 1
 
-    def rm_usr(self):
-        user = User()
+    def delete_user(self):
+        pass
 
-        self.users.remove(user)
-
-        return len(self.users) + 1
-
-    def get_loc_index(self, index):
+    def get_location_index(self, index):
 
         return self.users[index].dir_index
 
-    def set_loc_index(self, usr_index, loc_index):
+    def set_location_index(self, user_index, loc_index):
 
-        self.users[usr_index].dir_index = loc_index
+        self.users[user_index].dir_index = loc_index
 
 
 class FileManager(object):
+
     def __init__(self, super_block):
-        self.inode_manager = InodeManager(sys_bit=super_block.bit, block_nums=super_block.inode_num)
 
+        self.inode_manager = InodeManager(super_block.bit, super_block.inode_num)
         self.block_manager = BlockManager(
-            sys_bit=super_block.bit,
-            block_size=super_block.data_block_size,
-            block_num=super_block.data_block_num,
-        )
+            super_block.bit, super_block.data_block_size, super_block.data_block_num)
 
-        root_dir = {'.': '/', '..': 0, }
-
+        root_dir = {
+            '.': '/',
+            '..': 0
+        }
         index = self.save(root_dir)
 
-        ColorInfo(content=f"Root dictionary inode index is {index}", fg='blue')
+        Methods.cod(text=f"Root dir inode index: {index}", flag='info')
 
-        ColorInfo(content=f"File Manager Initialized")
-
-    def save(self, data):
-        ColorInfo(content=f"Data: {data}\nis saving")
-
-        data = Methods.transform_type(data=data)
-
-        size = len(data)
-
-        blocks_index = self.block_manager.save(data=data)
-
-        ColorInfo(content=f'Data saved in block: {blocks_index}', fg='blue')
-
-        return self.inode_manager.save(block_index=blocks_index, alloc_size=size)
-
-    def delete(self, index):
-        blocks_index = self.inode_manager.get_blocks_index(index=index)
-
-        ColorInfo(content=f"Inode index {index} deleted", fg='red')
-
-        self.block_manager.reset(index_s=blocks_index)
-
-        self.inode_manager.reset(index=index)
-
-        ColorInfo(content=f"Blocks index {blocks_index} deleted", fg='red')
-
+        Methods.cod(text=f"File Manager Initialized", flag='info', color='indigo')
         pass
 
-    def load(self, index, data_type):
-        inode = self.inode_manager.get_inode(index=index)
+    def get_information(self, index):
 
-        blocks_index = inode.get_block_index()
+        inode = self.inode_manager.get_inode(index)
+        return inode.get_inode_information()
 
-        ColorInfo(content=blocks_index)
+    def sub_file(self, index, dir_name):
 
-        data_ = self.block_manager.get_data(index_s=blocks_index)
+        file_list = []
 
-        data_ = Methods.transform_type(data=data_, target_type=data_type)
+        dir_data = self.load(index, 'dir')
 
-        return data_
+        for k, v in dir_data.items():
 
-    def update_dir(self, index, new_dict, method='add'):
+            file_list.append(k)
 
-        data_dir = self.load(index=index, data_type='dir')
+            if '.' not in k:
 
-        ColorInfo(content=f"Dir: {data_dir}")
+                file_list.extend(self.sub_file(v, k))
 
-        if method == 'del':
+        file_list = [dir_name+'/'+x for x in file_list]
+
+        return file_list
+
+    def update_dir_file(self, index, new_dict, flag='add'):
+
+        dir_data = self.load(index, 'dir')
+
+        if flag == 'del':
 
             keys = new_dict.keys()
 
             for key in keys:
-                del data_dir[key]
+
+                del dir_data[key]
 
         else:
 
-            data_dir.update(new_dict)
+            dir_data.update(new_dict)
 
-        ColorInfo(content=f'Dir updated: {data_dir}')
+        Methods.cod(text=f"Current dir updated: {dir_data}")
 
-        self.delete(index=index)
+        self.delete(index)
 
-        index = self.save(data=data_dir)
+        index = self.save(dir_data)
 
         return index
 
-    def sub_file_dir(self, index, dirs):
+    def load(self, index, data_type):
 
-        file_dir_list = []
+        inode = self.inode_manager.get_inode(index)
 
-        data_dir = self.load(index=index, data_type='dir')
+        block_index_s = inode.get_blocks_index()
 
-        for key, value in data_dir.items():
+        data = self.block_manager.get_data(block_index_s)
 
-            file_dir_list.append(key)
+        data = Methods.transform(data=data, to=data_type)
 
-            if '.' not in key:
+        return data
 
-                file_dir_list.extend(self.sub_file_dir(index=value, dirs=key))
+    def delete(self, index):
 
-        file_dir_list = [dirs + '/' + x for x in file_dir_list]
+        Methods.cod(text=f"Delete inode index: {index}", flag='info')
 
-        return file_dir_list
+        blocks_index_s = self.inode_manager.get_block_index_s(index)
 
-    def information(self, index):
+        Methods.cod(text=f"Delete blocks index: {blocks_index_s}", flag='info')
 
-        inode = self.inode_manager.get_inode(index=index)
+        self.block_manager.reset(blocks_index_s)
 
-        return inode.get_info()
+        self.inode_manager.reset(index)
+
+        pass
+
+    def save(self, data):
+
+        data = Methods.transform(data=data)
+
+        size = len(data)
+
+        block_index_s = self.block_manager.save(data)
+
+        Methods.cod(text=f"Data saved in blocks: {block_index_s}", flag='info')
+
+        return self.inode_manager.save(block_index_s, size)
 
 
 class InodeManager(object):
-    def __init__(self, sys_bit, block_nums):
-        self.map_ = np.zeros((sys_bit, int(block_nums / sys_bit)))
 
+    def __init__(self, bit, num):
+
+        self.map = zeros((bit, int(num/bit)))
         self.inodes = []
 
-        for i in range(block_nums):
+        for i in range(num):
             inode = Inode()
             self.inodes.append(inode)
 
-        ColorInfo("Inode Manager initialized.")
+        Methods.cod(text=f"Inode Manager Initialized", flag='info', color='indigo')
 
     def reset(self, index):
-        ColorInfo(f"Resetting inode of index: {index}")
 
-        x, y = Methods.index_2_xy(width=self.map_.shape[0], height=self.map_.shape[1], index=index)
+        Methods.cod(text=f"Inode index is resetting {index}")
 
-        self.map_[x][y] = 0
+        x, y = Methods.index_to_two_dimensional(width=self.map.shape[0],
+                                                height=self.map.shape[1],
+                                                index=index, )
 
-    def save(self, block_index, alloc_size):
-        index = self.alloc_inode()
+        self.map[x][y] = 0
 
-        inode = self.get_inode(index=index)
+    def save(self, block_index_s, size):
 
-        inode.set_file_size(size=alloc_size)
+        index = self.allocate_inode()
 
-        inode.set_blocks_index(blocks_index=block_index)
+        inode = self.get_inode(index)
+
+        inode.set_file_size(size=size)
+
+        inode.set_blocks_index(blocks_index=block_index_s)
 
         return index
 
-    def alloc_inode(self):
-        inode_index = np.where(self.map_ == 0)
+    def allocate_inode(self):
+
+        inode_index = where(self.map == 0)
 
         inode_index_x = inode_index[0][0]
-
         inode_index_y = inode_index[1][0]
 
-        self.map_[inode_index_x][inode_index_y] = 1
+        self.map[inode_index_x][inode_index_y] = 1
 
-        inode_index = Methods.xy_2_index(height=self.map_.shape[1], x=inode_index_x, y=inode_index_y)
+        inode_index = Methods.two_dimensional_to_index(
+            height=self.map.shape[1],
+            x=inode_index_x,
+            y=inode_index_y, )
 
         return inode_index
 
     def get_inode(self, index):
-
         return self.inodes[index]
 
-    def get_blocks_index(self, index):
-        index = self.inodes[index].get_block_index()
-
-        return index
+    def get_block_index_s(self, index):
+        index_s = self.inodes[index].get_blocks_index()
+        return index_s
 
 
 class BlockManager(object):
-    def __init__(self, sys_bit, block_size, block_num):
+    def __init__(self, bit, size, num):
 
-        self.block_size = block_size
+        self.block_size = size
+        self.map = zeros((bit, int(num/bit)))
+        self.blocks = [b''] * num
 
-        self.map_ = np.zeros((sys_bit, int(block_num / sys_bit)))
+        Methods.cod(text=f"Block Manager Initialized", flag='info', color='indigo')
 
-        self.block_s = [b''] * block_num
+    def reset(self, index_s):
 
-        ColorInfo("Block Manager initialized.")
+        self.set_data(b'', index_s)
 
-    def set_data_to_blocks(self, data, index_s):
+        for index in index_s:
+            x, y = Methods.index_to_two_dimensional(width=self.map.shape[0],
+                                                    height=self.map.shape[1],
+                                                    index=index, )
+            self.map[x][y] = 0
+
+    def save(self, data):
+
+        size = len(data)
+        index_s = self.allocate_blocks(size)
+        self.set_data(data, index_s)
+        return index_s
+
+    def allocate_blocks(self, size):
+
+        block_num = int(size / self.block_size) + 1
+
+        block_index_s = []
+
+        data_block_index = where(self.map == 0)
+
+        for i in range(block_num):
+
+            data_block_index_x = data_block_index[0][i]
+
+            data_block_index_y = data_block_index[1][i]
+
+            data_block_index_clean = data_block_index_x * \
+                self.map.shape[1] + data_block_index_y
+
+            block_index_s.append(data_block_index_clean)
+
+            self.map[data_block_index_x][data_block_index_y] = 1
+
+        return block_index_s
+
+    def set_data(self, data, index_s):
 
         for i in range(len(index_s)):
-            self.block_s[index_s[i]] = data[i * 8192:(i + 1) * 8192]
 
-    def get_data(self, index_s):
+            self.blocks[index_s[i]] = data[i * 8192:(i + 1) * 8192]
 
-        return self.get_data_from_blocks(blocks=self.get_block_s(index_s=index_s))
+    def get_data(self, index_byte_data):
+
+        return self.get_data_from_block(self.get_blocks(index_byte_data))
 
     @staticmethod
-    def get_data_from_blocks(blocks):
+    def get_data_from_block(blocks):
 
-        binary_data = b''
+        byte_data = b''
 
         for block in blocks:
-            binary_data += block
 
-        return binary_data
+            byte_data += block
 
-    def get_block_s(self, index_s):
+        return byte_data
+
+    def get_blocks(self, index_s):
 
         blocks = []
 
         for index in index_s:
-            blocks.append(self.block_s[index])
+            blocks.append(self.blocks[index])
 
         return blocks
 
-    def alloc_blocks(self, size):
-
-        block_num = int(size / self.block_size) + 1
-
-        blocks_index = []
-
-        data_blocks_index = np.where(self.map_ == 0)
-
-        for i in range(block_num):
-            data_blocks_index_x = data_blocks_index[0][i]
-
-            data_blocks_index_y = data_blocks_index[1][i]
-
-            data_blocks_index_c = data_blocks_index_x * self.map_.shape[1] + data_blocks_index_y
-
-            blocks_index.append(data_blocks_index_c)
-
-            self.map_[data_blocks_index_x][data_blocks_index_y] = 1
-
-        return blocks_index
-
-    def reset(self, index_s):
-        self.set_data_to_blocks(data=b'', index_s=index_s)
-
-        for index in index_s:
-            x, y = Methods.index_2_xy(width=self.map_.shape[0], height=self.map_.shape[1], index=index)
-            self.map_[x][y] = 0
-
-    def save(self, data):
-        size = len(data)
-
-        index_s = self.alloc_blocks(size=size)
-
-        self.set_data_to_blocks(data=data, index_s=index_s)
-
-        return index_s
-
 
 class Methods:
-    @staticmethod
-    def index_2_xy(width, height, index):
-
-        x = y = 0
-
-        if index == 0:
-            return x, y
-
-        else:
-            for i in range(width):
-                for j in range(height):
-                    index -= 1
-                    y += 1
-
-                    if index == 0:
-                        return x, y
-
-            x += 1
 
     @staticmethod
-    def xy_2_index(height, x, y):
-
-        index = x * height + y
-
-        return index
-
-    @staticmethod
-    def transform_type(data, target_type=None):
-
-        if isinstance(data, str):
-            data = bytes(data, encoding='utf-8')
-
-        elif isinstance(data, dict):
-            data = bytes(str(data), encoding='utf-8')
-
-        elif isinstance(data, bytes):
-            if target_type == 'dir':
-                data = eval(data)
-
-            elif target_type == 'text':
-                data = str(data, encoding='utf-8')
-
-            else:
-                data = data
-
-        else:
-            print(f'Data Transform Error')
-            return
-
-        return data
-
-
-class ColorInfo:
-    def __init__(self, content, display='default', fg='none', bg="none"):
-        #   开头部分：\033[显示方式;前景色;背景色m + 结尾部分：\033[0m
-        dp = {
+    def cod(text, flag=None, dp='default', color='white', bg=None, get_value=False):
+        """
+        :param flag: type of msg: info/warning/error
+        :param text: content to print
+        :param dp: display mode
+        :param color: font-color
+        :param bg: background color
+        :param get_value: just print text or return a value
+        :return: deal to get_value
+        """
+        display = {
             'default': 0,
             'highlight': 1,
             'underline': 4,
             'swing': 5,
         }
         font_color = {
-            'none': '',
+            None: '',
             'black': 30,
             'red': 31,
             'green': 32,
@@ -692,7 +703,7 @@ class ColorInfo:
             'white': 37,
         }
         background_color = {
-            'none': '',
+            None: '',
             'black': 40,
             'red': 41,
             'green': 42,
@@ -702,4 +713,67 @@ class ColorInfo:
             'indigo': 46,
             'white': 47,
         }
-        print(f"\033[{dp[display]};{background_color[bg]};{font_color[fg]}m {content} \033[0m")
+        flag_type = {
+            None: '',
+            'info': '[INFO]',
+            'warning': '[WARNING]',
+            'error': '[ERROR]',
+        }
+
+        if get_value is False:
+            print(f"\033[{display[dp]};{background_color[bg]};{font_color[color]}m {flag_type[flag]}{text} \033[0m")
+        else:
+            text = f"\033[{display[dp]};{background_color[bg]};{font_color[color]}m {flag_type[flag]}{text} \033[0m"
+            return text
+
+    @staticmethod
+    def index_to_two_dimensional(width, height, index):
+
+        x, y = 0, 0
+
+        if index == 0:
+            return x, y
+
+        else:
+            for p in range(width):
+                for q in range(height):
+
+                    index -= 1
+
+                    y += 1
+
+                    if index == 0:
+                        return x, y
+
+                x += 1
+
+    @staticmethod
+    def two_dimensional_to_index(height, x, y):
+
+        return x * height + y
+
+    @staticmethod
+    def transform(data, to=None):
+
+        if isinstance(data, str):
+            data = bytes(data, encoding='utf-8')
+
+        elif isinstance(data, dict):
+            data = bytes(str(data), encoding='utf-8')
+
+        elif isinstance(data, bytes):
+            if to == 'dir':
+                data = eval(data)
+
+            elif to == 'text':
+                data = str(data, encoding='utf-8')
+
+            else:
+                data = data
+
+        else:
+            Methods.cod(text=f"[ERROR] An error was occur when data transforming", color='red')
+            return
+
+        Methods.cod(text=f"[INFO] Succeed to transform data")
+        return data
