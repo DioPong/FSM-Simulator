@@ -12,7 +12,7 @@
 | :-: | :-: | :-: | :-: |
 | Administrator |  | Add new user | 😑 |
 | register | name/password | with op (e.g. admin) | 😑 |
-| login | name/password |      | 😑 |
+| login | name/password |      | ✔ |
 | logout | - |      | 😑 |
 | ~~Initialization~~ |  | ~~Similar to reboot~~ |  |
 | create | file name | Create file | 😭 |
