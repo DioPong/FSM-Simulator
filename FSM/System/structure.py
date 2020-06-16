@@ -105,13 +105,13 @@ class Inode(object):
 
 
 class User(object):
-    def __init__(self):
+    def __init__(self, name, index, level):
 
-        self.dir_index = 0
-
-    def set_dir_index(self, index):
+        self.user_name = name
 
         self.dir_index = index
+
+        self.user_level = level
 
 
 class Method:

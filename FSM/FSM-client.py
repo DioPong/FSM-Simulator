@@ -63,6 +63,7 @@ class UserUI(object):
                             '  -cp           [source] [target]\n'
                             '  -download     [source] [target]\n'
                             '  -upload       [source] [target]\n'
+                            '  -write        [target] [content]\n'
                             '  -stop/exit    \n'
                             '  -clear        \n',
                        color='indigo')
@@ -76,7 +77,7 @@ class UserUI(object):
             self.login_info()
 
         elif operation in ['stat', 'cd', 'ls', 'mkdir', 'rmdir', 'rm', 'search', 'cat', 'cp', 'upload', 'download',
-                           'login', 'logout', 'permission']:
+                           'login', 'logout', 'permission', 'write', 'register']:
 
             if operation == 'cd':
 

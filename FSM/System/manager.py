@@ -35,7 +35,8 @@ class FileSystemManager(object):
             'rmdir': self.rm,
             'rm': self.rm,
             'find': self.find,
-            'more': self.more,
+            'read': self.read,
+            'cat': self.read,
             'cp': self.cp,
             'import': self.file_import,
             'export': self.file_export,
@@ -91,9 +92,13 @@ class FileSystemManager(object):
 
     def register(self):
 
-        self.permission = 0
+        print(self.parameters)
 
-        self.result = self.user_manager.add_user()
+        if self.parameters[0] == 'guest':
+
+            self.result = self.user_manager.add_user(lv=0)
+
+            self.permission = 0
 
     def stat(self):
 
@@ -306,7 +311,7 @@ class FileSystemManager(object):
 
         self.result = result
 
-    def more(self):
+    def read(self):
 
         if self.permission == 0:
             self.result = Methods.cod(text=f"Permission deny", color='red', flag='error', get_value=True)
@@ -341,6 +346,36 @@ class FileSystemManager(object):
         self.result = data
 
         pass
+
+    def write(self):
+
+        if self.permission == 0:
+            self.result = Methods.cod(text=f"Permission deny", color='red', flag='error', get_value=True)
+
+            return
+
+        location_index = self.user_manager.get_location_index(self.user_index)
+
+        try:
+            target_file = self.parameters[0]
+
+            content = self.parameters[1:]
+
+            data = ''
+
+            for item in content:
+
+                data += item
+
+            index_s = self.file_manager.save(data=data)
+
+            self.file_manager.update_dir_file(location_index, {target_file: index_s})
+
+            self.result = Methods.cod(text=f"Content saved in index: {index_s}", color='green', get_value=True)
+
+        except IndexError:
+
+            self.result = Methods.cod(text=f"Parameter Error", flag='error', color='red', get_value=True)
 
     def cp(self):
 
@@ -395,14 +430,11 @@ class FileSystemManager(object):
             f = open(name1, 'rb')
 
         except IndexError:
-
             self.result = 'Command error!'
-
             return
+
         except FileNotFoundError:
-
             self.result = 'FileNotFoundError: not found!'
-
             return
 
         data = f.read()
@@ -476,6 +508,12 @@ class FileSystemManager(object):
 
             if str(usr_password) == str(r_password):
 
+                self.user_index += 1
+
+                op = 2 if name == 'admin' else 1
+
+                self.result = self.user_manager.add_user(lv=op, u_index=self.user_index, name=name)
+
                 Methods.cod('Login succeed', color='red', flag='info')
 
                 self.permission = 2
@@ -508,21 +546,24 @@ class FileSystemManager(object):
 
 class UserManager(object):
 
-    pass
-
     def __init__(self):
         self.users = []
 
-    def add_user(self):
+    def add_user(self, lv=0, u_index=0, name=''):
 
-        user = User()
+        user = User(name=name, index=u_index, level=lv)
 
         self.users.append(user)
 
         return len(self.users) - 1
 
-    def delete_user(self):
-        pass
+    def delete_user(self, name, u_index, lv):
+
+        user = User(name=name, index=u_index, level=lv)
+
+        self.users.remove(user)
+
+        return len(self.users) + 1
 
     def get_location_index(self, index):
 
@@ -830,17 +871,6 @@ class Methods:
         else:
             text = f"\033[{display[dp]};{background_color[bg]};{font_color[color]}m{flag_type[flag]} {text} \033[0m"
             return text
-
-    @staticmethod
-    def permission(func, op):
-
-        print(func)
-
-        if op == 1 or op == 2:
-            return True
-
-        elif op == 0:
-            return False
 
     @staticmethod
     def index_to_two_dimensional(width, height, index):
